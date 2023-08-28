@@ -1,0 +1,211 @@
+openapi: 3.0.1
+info:
+  title: API UX POSB Customer Blacklist Verification V1
+  description: Permite conocer si las personas/entidades involucradas en el proceso
+    de una remesa del exterior se encuentra en las listas negras de safewatch.
+  version: 1.0.0
+externalDocs:
+  description: API Documentación
+  url: https://confluence.devsecopsbcp.com/display/CANALT/API+UX+POSB+Remittance+Blacklist
+servers:
+- url: /channel/posb/v1
+paths:
+  /blacklist/verify:
+    post:
+      tags:
+      - Blacklist
+      summary: Permite verificar si los involucrados en un proceso de remesas están
+        en las listas negras de safewatch.
+      description: "### Acerca de la funcionalidad expuesta\nPermite verificar si\
+        \ los involucrados en un proceso de remesas están en las listas negras de\
+        \ safewatch.\n\n### Precondiciones para el consumo de esta versión de la API\n\
+        No aplica.\n\n### Headers Requeridos\n| Header | Ejemplo |\n|----------------|-----------|\n\
+        |Authorization|Bearer {token}|\n\n### Data de Prueba\n```json\n{\n  sourceApplication:{\n\
+        \     code:VPOS\n  },\n  penalizeds:[\n    {\n        fullName: Diego Flores,\n\
+        \        fullName: Juan Perez,\n        fullName: AEROCONTINENTE,\n      \
+        \  fullName: Oracle,\n        fullName: Cuba\n    }\n  ]\n}\n```\n\n#### Data\
+        \ de ambiente de Desarrollo\nNo aplica.\n\n### Path Parameters\nNo Aplica.\n\
+        \n### Usos válidos de Query Parameters\nNo Aplica.\n \n### Lista de Valores\
+        \ usadas en esta versión de la API\nNo aplica.\n\n### Variantes válidas del\
+        \ Payload (Cuerpo del mensaje)\n### Caso en la que los involucrados en la\
+        \ remesa no se encuentren en las listas negras\n```json\n{\n  referenceQueryId:\
+        \ 0,\n  acceptedViolationQuantity: 0,\n  externalViolationQuantity: 0,\n \
+        \ penalizeds:[]\n}\n```\n### Caso en la que los involucrados en la remesa\
+        \ se encuentren en las listas negras.\n```json\n{\n  referenceQueryId: 15151512,\n\
+        \  acceptedViolationQuantity: 0,\n  externalViolationQuantity: 1,\n  penalizeds:[\n\
+        \    {\n      fullname: Diego Flores\n    },\n    {\n      fullname: Cuba\n\
+        \    }\n  ]\n}\n```\n\n### Códigos de error usados en esta versión de la API\n\
+        |Código|HTTP Status|Descripción|\n|------|-----------|-----------|\n|ER0400|400|Los\
+        \ datos proporcionados no son válidos.\n|ER0404|404|No se encontró el recurso\
+        \ solicitado.\n|ER9999|500|Ocurrió un error inesperado.\n|ER0503|503|El servicio\
+        \ no se encuentra disponible.\n"
+      operationId: verifyBlacklist
+      parameters:
+      - name: Authorization
+        in: header
+        description: Token de Authorización
+        required: true
+        schema:
+          type: string
+          example: Bearer 363536363jjxnj63633611
+      requestBody:
+        description: Entrada del Servicio
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BlacklistVerificationRequest'
+        required: true
+      responses:
+        "200":
+          description: Operación Exitosa.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlacklistVerificationResponse'
+        "400":
+          description: El cliente envió datos incorrectos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiException'
+        "401":
+          description: No esta autorizado correctamente para ejecutar esta operacion.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiException'
+        "404":
+          description: No se encontró el recurso solicitado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiException'
+        "500":
+          description: Ocurrió un error inesperado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiException'
+        "503":
+          description: El servicio no se encuentra disponible.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiException'
+      x-atlas-header:
+        $ref: '#/components/schemas/BlacklistVerificationHeaders'
+components:
+  schemas:
+    BlacklistVerificationHeaders:
+      type: object
+    BlacklistVerificationResponse:
+      title: BlacklistVerificationResponse
+      required:
+      - acceptedViolationQuantity
+      - externalViolationQuantity
+      - penalizeds
+      - referenceQueryId
+      type: object
+      properties:
+        referenceQueryId:
+          type: string
+          description: Código de consulta
+          example: "488888"
+        acceptedViolationQuantity:
+          type: string
+          description: Campo acceptedViolationQuantity es el numero de las violaciones
+            Aceptadas.
+          example: "0"
+        externalViolationQuantity:
+          type: string
+          description: Campo externalViolationQuantity son aquellas en donde se genera
+            un hit debido a un match con algun entidad.
+          example: "0"
+        penalizeds:
+          type: array
+          description: Campo Penalizeds
+          items:
+            $ref: '#/components/schemas/Penalizeds'
+    BlacklistVerificationRequest:
+      title: BlacklistVerificationRequest
+      required:
+      - penalizeds
+      - sourceApplication
+      type: object
+      properties:
+        sourceApplication:
+          $ref: '#/components/schemas/SourceApplication'
+        penalizeds:
+          type: array
+          description: Campo Penalizeds
+          items:
+            $ref: '#/components/schemas/Penalizeds'
+    SourceApplication:
+      title: sourceApplication
+      type: object
+      properties:
+        code:
+          maxLength: 4
+          minLength: 4
+          pattern: ^[#.0-9a-zA-Z\s,-]+$
+          type: string
+          description: Código del aplicativo
+          example: VPOS
+    Penalizeds:
+      title: penalizeds
+      required:
+      - fullName
+      type: object
+      properties:
+        fullName:
+          maxLength: 100
+          minLength: 0
+          pattern: ^[#.0-9a-zA-Z\s,-]+$
+          type: string
+          description: 'Campo nombre completo, para realizar la b&uacute;squeda. '
+          example: AEROCONTINENTE
+    ApiException:
+      title: ApiException
+      type: object
+      properties:
+        code:
+          type: string
+          description: Codigo de error de Sistema
+          example: TL0001
+        description:
+          type: string
+          description: Descripcion del error de Sistema
+          example: Error al llamar al servicio
+        errorType:
+          type: string
+          description: Tipo de Error de Sistema
+          example: TECHNICAL
+        exceptionDetails:
+          type: array
+          description: Lista de detalles del error
+          items:
+            $ref: '#/components/schemas/ApiExceptionDetail'
+        properties:
+          type: object
+          properties: {}
+          description: Lista de propiedades especiales.
+      description: Datos del error de sistema.
+    ApiExceptionDetail:
+      title: ApiExceptionDetail
+      type: object
+      properties:
+        code:
+          type: string
+          description: Codigo de error del Detalle/Proveedor
+          example: MB0008
+        component:
+          type: string
+          description: Nombre del componente de falla
+          example: MB.CardInqV2
+        description:
+          type: string
+          description: Descripcion del Detalle
+          example: Codigo invalido para el canal
+      description: Datos del error técnico.
+x-bcp-api-type: UX
+x-bcp-api-id: posb-customer-blacklist-verification
