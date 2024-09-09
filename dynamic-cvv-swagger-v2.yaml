@@ -1,0 +1,155 @@
+openapi: 3.0.0
+info:
+  title: DynamicCVV API
+  version: 1.0.0
+  description: API for generating and validating dynamic CVV values
+
+servers:
+  - url: https://bonz8o18zi.execute-api.us-east-1.amazonaws.com/dev
+
+paths:
+  /card-validation-value/generate:
+    post:
+      summary: Generate a dynamic CVV
+      operationId: generateCVV
+      tags:
+        - CVV
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerateRequest'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerateResponse'
+
+  /card-validation-value/validate:
+    post:
+      summary: Validate a dynamic CVV
+      operationId: validateCVV
+      tags:
+        - CVV
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ValidateRequest'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidateResponse'
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key
+      description: API key for authentication
+      x-api-key: GA3oCAFCnn4l0x1RVgmRr1ARzymS3VRZ3JXzwc70
+  
+  schemas:
+    GenerateRequest:
+      type: object
+      required:
+        - card_expiration_date
+      properties:
+        pci_token:
+          type: string
+          example: "3778 9790 9161 931"
+        primary_account_number:
+          type: string
+          example: "3778 9790 9161 931"
+        card_expiration_date:
+          type: string
+          example: "0529"
+        validation_length: #length of the cvv to be generated
+          type: integer
+          enum: [3, 4]
+          default: 3
+        network:
+          type: string
+          enum: ["000", "999"] #000 for visa and mastercard, 999 for amex
+          default: "000"
+      oneOf:
+        - required: [pci_token]
+        - required: [primary_account_number]
+
+    GenerateResponse:
+      type: object
+      properties:
+        card_verification_value: #cvv generated
+          type: string
+          example: "5754"
+        key_check_value:
+          type: string
+          example: "237B68"
+
+    ValidateRequest:
+      type: object
+      required:
+        - card_expiration_date
+        - card_verification_value
+      properties:
+        pci_token:
+          type: string
+          example: "3778 9790 9161 931"
+        primary_account_number:
+          type: string
+          example: "3778 9790 9161 931"
+        card_expiration_date:
+          type: string
+          example: "0529"
+        card_verification_value:
+          type: string
+          example: "5750" #Keep in mind that payment cryptography expects a 4 digit CVV for amex cards
+        network:
+          type: string
+          enum: ["000", "999"] #000 for visa and mastercard, 999 for amex
+          default: "000"
+      oneOf:
+        - required: [pci_token]
+        - required: [primary_account_number]
+
+    ValidateResponse:
+      type: object
+      properties:
+        Code:
+          type: string
+          enum: ["0000", "9999"]
+          example: "0000"
+        Message:
+          type: string
+          example: "The card verification value was validated"
+        key_check_value:
+          type: string
+          nullable: true
+          example: "237B68"
+      oneOf:
+        - properties:
+            Code:
+              const: "0000"
+            Message:
+              const: "The card verification value was validated"
+            key_check_value:
+              type: string
+        - properties:
+            Code:
+              const: "9999"
+            Message:
+              const: "The card verification value could not be validated"
+            key_check_value:
+              type: "null"
